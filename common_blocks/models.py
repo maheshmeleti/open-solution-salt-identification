@@ -65,6 +65,7 @@ class PyTorchUNet(Model):
 
         batch_gen, steps = datagen
         for epoch_id in range(self.training_config['epochs']):
+            print('epoch {} start'.format(epoch_id))
             self.callbacks.on_epoch_begin()
             for batch_id, data in enumerate(batch_gen):
                 self.callbacks.on_batch_begin()
@@ -72,6 +73,7 @@ class PyTorchUNet(Model):
                 self.callbacks.on_batch_end(metrics=metrics)
                 if batch_id == steps:
                     break
+            print('epoch {} end'.format(epoch_id))
             self.callbacks.on_epoch_end()
             if self.callbacks.training_break():
                 break

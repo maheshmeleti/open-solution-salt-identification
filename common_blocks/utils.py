@@ -23,7 +23,7 @@ from imgaug import augmenters as iaa
 import imgaug as ia
 import torch
 
-NEPTUNE_CONFIG_PATH = str(pathlib.Path(__file__).resolve().parents[1] / 'configs' / 'neptune.yaml')
+NEPTUNE_CONFIG_PATH = str(pathlib.Path(__file__).resolve().parents[1] / 'neptune.yaml')
 logger = get_logger()
 
 

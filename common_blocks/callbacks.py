@@ -18,7 +18,7 @@ from toolkit.pytorch_transformers.validation import score_model
 from .utils import get_logger, sigmoid, softmax, make_apply_transformer, read_masks, get_list_of_image_predictions
 from .metrics import intersection_over_union, intersection_over_union_thresholds
 from .postprocessing import crop_image, resize_image, binarize
-
+import pdb
 logger = get_logger()
 
 Y_COLUMN = 'file_path_mask'
@@ -147,7 +147,7 @@ class TrainingMonitor(Callback):
 
     def on_batch_end(self, metrics, *args, **kwargs):
         for name, loss in metrics.items():
-            loss = loss.data.cpu().numpy()[0]
+            loss = loss.cpu().item()
             if name in self.epoch_loss_averagers.keys():
                 self.epoch_loss_averagers[name].send(loss)
             else:
@@ -177,7 +177,7 @@ class ValidationMonitor(Callback):
             val_loss = self.get_validation_loss()
             self.model.train()
             for name, loss in val_loss.items():
-                loss = loss.data.cpu().numpy()[0]
+                loss = loss.cpu().item()
                 logger.info('epoch {0} validation {1}:     {2:.5f}'.format(self.epoch_id, name, loss))
         self.epoch_id += 1
 
@@ -308,7 +308,7 @@ class NeptuneMonitor(Callback):
 
     def on_batch_end(self, metrics, *args, **kwargs):
         for name, loss in metrics.items():
-            loss = loss.data.cpu().numpy()[0]
+            loss = loss.cpu().item()
 
             if name in self.epoch_loss_averagers.keys():
                 self.epoch_loss_averagers[name].send(loss)
@@ -334,7 +334,7 @@ class NeptuneMonitor(Callback):
         val_loss = self.get_validation_loss()
         self.model.train()
         for name, loss in val_loss.items():
-            loss = loss.data.cpu().numpy()[0]
+            loss = loss.cpu().item()
             self.ctx.channel_send('{} epoch_val {} loss'.format(self.model_name, name), x=self.epoch_id, y=loss)
 
 
@@ -505,39 +505,41 @@ class ValidationMonitorSegmentation(ValidationMonitor):
         batch_gen, steps = self.validation_datagen
         partial_batch_losses = []
         outputs = {}
-        for batch_id, data in enumerate(batch_gen):
-            X = data[0]
-            targets_tensors = data[1:]
+        with torch.no_grad():
+            for batch_id, data in enumerate(batch_gen):
+                #pdb.set_trace()
+                X = data[0]
+                targets_tensors = data[1:]
 
-            if torch.cuda.is_available():
-                X = Variable(X, volatile=True).cuda()
-                targets_var = []
-                for target_tensor in targets_tensors:
-                    targets_var.append(Variable(target_tensor, volatile=True).cuda())
-            else:
-                X = Variable(X, volatile=True)
-                targets_var = []
-                for target_tensor in targets_tensors:
-                    targets_var.append(Variable(target_tensor, volatile=True))
+                if torch.cuda.is_available():
+                    X = Variable(X, volatile=True).cuda()
+                    targets_var = []
+                    for target_tensor in targets_tensors:
+                        targets_var.append(Variable(target_tensor, volatile=True).cuda())
+                else:
+                    X = Variable(X, volatile=True)
+                    targets_var = []
+                    for target_tensor in targets_tensors:
+                        targets_var.append(Variable(target_tensor, volatile=True))
 
-            outputs_batch = self.model(X)
-            if len(self.output_names) == 1:
-                for (name, loss_function_one, weight), target in zip(self.loss_function, targets_var):
-                    loss_sum = loss_function_one(outputs_batch, target) * weight
-                outputs.setdefault(self.output_names[0], []).append(outputs_batch.data.cpu().numpy())
-            else:
-                batch_losses = []
-                for (name, loss_function_one, weight), output, target in zip(self.loss_function, outputs_batch,
-                                                                             targets_var):
-                    loss = loss_function_one(output, target) * weight
-                    batch_losses.append(loss)
-                    partial_batch_losses.setdefault(name, []).append(loss)
-                    output_ = output.data.cpu().numpy()
-                    outputs.setdefault(name, []).append(output_)
-                loss_sum = sum(batch_losses)
-            partial_batch_losses.append(loss_sum)
-            if batch_id == steps:
-                break
+                outputs_batch = self.model(X)
+                if len(self.output_names) == 1:
+                    for (name, loss_function_one, weight), target in zip(self.loss_function, targets_var):
+                        loss_sum = loss_function_one(outputs_batch, target) * weight
+                    outputs.setdefault(self.output_names[0], []).append(outputs_batch.data.cpu().numpy())
+                else:
+                    batch_losses = []
+                    for (name, loss_function_one, weight), output, target in zip(self.loss_function, outputs_batch,
+                                                                                targets_var):
+                        loss = loss_function_one(output, target) * weight
+                        batch_losses.append(loss)
+                        partial_batch_losses.setdefault(name, []).append(loss)
+                        output_ = output.data.cpu().numpy()
+                        outputs.setdefault(name, []).append(output_)
+                    loss_sum = sum(batch_losses)
+                partial_batch_losses.append(loss_sum)
+                if batch_id == steps:
+                    break
         self.model.train()
         average_losses = sum(partial_batch_losses) / steps
         outputs = {'{}_prediction'.format(name): get_list_of_image_predictions(outputs_) for name, outputs_ in

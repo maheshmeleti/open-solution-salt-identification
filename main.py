@@ -18,6 +18,7 @@ from common_blocks import utils
 CTX = neptune.Context()
 LOGGER = utils.init_logger()
 
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 #    ______   ______   .__   __.  _______  __    _______      _______.
 #   /      | /  __  \  |  \ |  | |   ____||  |  /  _____|    /       |
@@ -27,7 +28,7 @@ LOGGER = utils.init_logger()
 #   \______| \______/  |__| \__| |__|     |__|  \______| |_______/    
 #                                                                     
 
-EXPERIMENT_DIR = '/output/experiment'
+EXPERIMENT_DIR = './output/experiment'
 CLONE_EXPERIMENT_DIR_FROM = ''  # When running eval in the cloud specify this as for example /input/SAL-14/output/experiment
 OVERWRITE_EXPERIMENT_DIR = False
 DEV_MODE = False
@@ -419,7 +420,7 @@ def calculate_scores(y_true, y_pred):
 #                                          
 
 if __name__ == '__main__':
-    prepare_metadata()
+    #prepare_metadata()
     train()
     evaluate()
     predict()
