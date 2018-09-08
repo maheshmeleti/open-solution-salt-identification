@@ -1,7 +1,7 @@
 # TGS Salt Identification Challenge
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/minerva-ml/open-solution-home-credit/blob/master/LICENSE)
 
-This is an open solution to the [TGS Salt Identification Challenge](https://www.kaggle.com/c/tgs-salt-identification-challenge).
+This is an open solution to the [TGS Salt Identification Challenge](https://www.kaggle.com/c/tgs-salt-identification-challenge). Check [Kaggle forum](https://www.kaggle.com/c/tgs-salt-identification-challenge/discussion/61949) and participate in the discussions!
 
 ## Our goals
 We are building entirely open solution to this competition. Specifically:
@@ -14,13 +14,7 @@ We are building entirely open solution to this competition. Specifically:
 |:---:|
 |[![training monitor](https://gist.githubusercontent.com/jakubczakon/cac72983726a970690ba7c33708e100b/raw/b45dd02b6643a3805db42ab51a62293a2940c0be/neptune_salt.png)](https://app.neptune.ml/-/dashboard/experiment/3dfce6cf-3031-4e9a-b95c-1ac8b5bb0026)|
 
-## Disclaimer
-In this open source solution you will find references to the [neptune.ml](https://neptune.ml). It is free platform for community Users, which we use daily to keep track of our experiments. Please note that using neptune.ml is not necessary to proceed with this solution. You may run it as plain Python script :snake:.
-
-# How to start?
-## Learn about our solutions
-1. Check [Kaggle forum](https://www.kaggle.com/c/tgs-salt-identification-challenge/discussion/61949) and participate in the discussions.
-1. See solutions below:
+## Our solutions so far
 
 | link to code | CV | LB |
 |:---:|:---:|:---:|
@@ -28,19 +22,22 @@ In this open source solution you will find references to the [neptune.ml](https:
 |solution 2|0.794|0.798|
 |solution 3|0.807|0.801|
 |solution 4|0.802|0.809|
+|solution 5|0.804|0.813|
+|solution 6|0.821|0.827|
+|solution 6|0.829|0.837|
 
+## Disclaimer
+In this open source solution you will find references to the [neptune.ml](https://neptune.ml). It is free platform for community Users, which we use daily to keep track of our experiments. Please note that using neptune.ml is not necessary to proceed with this solution. You may run it as plain Python script :snake:.
 
-## Start experimenting with ready-to-use code
+# How to start?
 You can jump start your participation in the competition by using our starter pack. Installation instruction below will guide you through the setup.
 
-### Installation *(fast track)*
+## Installation
 1. Clone repository and install requirements (*use Python3.5*) `pip3 install -r requirements.txt`
 1. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
-1. Run experiment based on U-Net:
+1. Run experiment based on U-Net. See instruction below:
 
-
-
-#### Cloud
+## Start experiment in the cloud
 ```bash
 neptune account login
 ```
@@ -54,23 +51,35 @@ project: USERNAME/PROJECT_NAME
 ```
 to your username and project name
 
-Prepare metadata. It only needs to be **done once**
+Prepare metadata. 
+Change the execution function in the `main.py`:
+
+```python
+if __name__ == '__main__':
+    prepare_metadata()
+```
+
+Then run the following command:
 
 ```bash
 neptune send --worker m-p100 \
 --environment pytorch-0.3.1-gpu-py3 \
---config configs/neptune.yaml \
-main.py prepare_metadata
+--config neptune.yaml \
+main.py
 
 ```
 
-They will be saved in the
+Remember metadata preparation only needs to be **done once**
+
+
+It will be saved in the
 
 ```yaml
   metadata_filepath: /output/metadata.csv
 ```
 
-From now on we will load the metadata by changing the `neptune.yaml`
+From now on we will load the metadata from **PREVIOUS EXPERIMENT**. 
+Do that by changing the `neptune.yaml`
 
 ```yaml
   metadata_filepath: /input/metadata.csv
@@ -78,16 +87,36 @@ From now on we will load the metadata by changing the `neptune.yaml`
 
 and adding the path to the experiment that generated metadata say SAL-1 to every command `--input /SAL-1/output/metadata.csv`
 
-Let's train the model by running:
+Let's train the model by changing the command in the `main.py` to:
+
+```python
+if __name__ == '__main__':
+    train()
+    evaluate()
+    predict()
+```
+
+and running
 
 ```bash
 neptune send --worker m-p100 \
 --environment pytorch-0.3.1-gpu-py3 \
---config configs/neptune.yaml \
+--config neptune.yaml \
 --input /SAL-1/output/metadata.csv \
-main.py train --pipeline_name unet
+main.py 
 
 ```
+
+You could have run it easily with both of those functions executed in the `main.py` :
+
+```python
+if __name__ == '__main__':
+    prepare_metadata()
+    train()
+    evaluate()
+    predict()
+```
+but recalculating metadata every time you run your pipeline doesn't seem like a good idea :).
 
 The model will be saved in the:
 
@@ -95,68 +124,81 @@ The model will be saved in the:
   experiment_dir: /output/experiment
 ```
 
-So we when running evaluation we need to use this folder in our experiment. We do that by:
+and the `submission.csv` will be saved in `/output/experiment/submission.csv`
 
-changing `neptune.yaml` 
+You can easily use models trained during one experiment in other experiments.
+For example when running evaluation we need to use the previous model folder in our experiment. We do that by:
 
-```yaml
-  clone_experiment_dir_from: '/SAL-2/output/experiment'
+changing `main.py` 
+
+```python
+  CLONE_EXPERIMENT_DIR_FROM = '/SAL-2/output/experiment'
 ```
+
+and
+
+```python
+if __name__ == '__main__':
+    evaluate()
+    predict()
+```
+
 and running the following command:
 
 
 ```bash
 neptune send --worker m-p100 \
 --environment pytorch-0.3.1-gpu-py3 \
---config configs/neptune.yaml \
+--config neptune.yaml \
 --input /SAL-1/output/metadata.csv \
 --input /SAL-2 \
-main.py evaluate_predict --pipeline_name unet
-
+main.py
 ```
 
-#### Local
+## Start experiment on your local machine
 Login to neptune if you want to use it
 ```bash
 neptune account login
 ```
 
+Change data filepaths to your local ones in `neptune.yaml` and `main.py`.
+
 Prepare metadata
-
-```bash
-neptune run --config configs/neptune.yaml main.py prepare_metadata
+Change `main.py':
+```python
+if __name__ == '__main__':
+    prepare_metadata()
 ```
 
-Training
+run
 
 ```bash
-neptune run --config configs/neptune.yaml main.py train --pipeline_name unet
+neptune run --config neptune.yaml main.py prepare_metadata
 ```
 
-Inference
+Training and inference
+Change `main.py':
+```python
+if __name__ == '__main__':
+    train()
+    evaluate()
+    predict()
+```
 
 ```bash
-neptune run --config configs/neptune.yaml main.py evaluate_predict --pipeline_name unet
+neptune run --config neptune.yaml main.py
 ```
 
 You can always run it with pure python :snake:
 
 ```bash
-python main.py prepare_metadata
-```
-
-```bash
-python main.py -- train--pipeline_name unet
-```
-
-```bash
-python main.py -- evaluate_predict --pipeline_name unet
+python main.py 
 ```
 
 ## Get involved
 You are welcome to contribute your code and ideas to this open solution. To get started:
 1. Check [competition project](https://github.com/neptune-ml/open-solution-salt-detection/projects/1) on GitHub to see what we are working on right now.
-1. Express your interest in paticular task by writing comment in this task, or by creating new one with your fresh idea.
+1. Express your interest in particular task by writing comment in this task, or by creating new one with your fresh idea.
 1. We will get back to you quickly in order to start working together.
 1. Check [CONTRIBUTING](CONTRIBUTING.md) for some more information.
 
