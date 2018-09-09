@@ -95,7 +95,7 @@ CONFIG = AttrDict({
 
                                  'augmentation_params': {'image_augment_train': aug.intensity_seq,
                                                          'image_augment_with_target_train': aug.crop_seq(
-                                                             crop_size=(PARAMS.image_h, PARAMS.image_w)),
+                                                             crop_size=(PARAMS.image_h, PARAMS.image_w), pad_size=(32,32), pad_method='reflect'),
                                                          'image_augment_inference': aug.pad_to_fit_net(64,
                                                                                                        PARAMS.pad_method),
                                                          'image_augment_with_target_inference': aug.pad_to_fit_net(64,

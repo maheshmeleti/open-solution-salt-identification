@@ -58,7 +58,7 @@ class PyTorchUNet(Model):
         self._initialize_model_weights()
 
         self.model = nn.DataParallel(self.model)
-        self.load('./output/experiment/checkpoints/unet/best.torch')
+        self.load('./output/experiment/checkpoints/unet/best_814.pth')
         self.model.train()
 
         if torch.cuda.is_available():

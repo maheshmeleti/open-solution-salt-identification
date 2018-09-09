@@ -4,7 +4,7 @@ import imgaug as ia
 from imgaug import augmenters as iaa
 
 from .utils import get_crop_pad_sequence, reseed
-
+import pdb
 
 def _perspective_transform_augment_images(self, images, random_state, parents, hooks):
     result = images
@@ -65,8 +65,8 @@ intensity_seq = iaa.Sequential([
 ], random_order=False)
 
 
-def crop_seq(crop_size):
-    seq = iaa.Sequential([affine_seq,
+def crop_seq(crop_size, pad_size, pad_method):
+    seq = iaa.Sequential([affine_seq, PadFixed(pad=pad_size, pad_method=pad_method), 
                           RandomCropFixedSize(px=crop_size)], random_order=False)
     return seq
 
@@ -176,6 +176,7 @@ def rotate(image, angle, axes=(0, 1)):
 class RandomCropFixedSize(iaa.Augmenter):
     def __init__(self, px=None, name=None, deterministic=False, random_state=None):
         super(RandomCropFixedSize, self).__init__(name=name, deterministic=deterministic, random_state=random_state)
+#        pdb.set_trace()
         self.px = px
         if isinstance(self.px, tuple):
             self.px_h, self.px_w = self.px
@@ -201,6 +202,7 @@ class RandomCropFixedSize(iaa.Augmenter):
 
     def _random_crop(self, seed, image):
         height, width = image.shape[:2]
+        #print('**_random_crop:', height, width)
 
         np.random.seed(seed)
         if height > self.px_h:

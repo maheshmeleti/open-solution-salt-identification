@@ -36,8 +36,8 @@ parameters:
   kaggle_message: 'solution-3'
   image_source: disk
   pin_memory: 1
-  loader_mode: resize
-  pad_method: symmetric
+  loader_mode: crop_and_pad
+  pad_method: reflect
   target_format: 'png'
   dev_mode_size: 20
   n_cv_splits: 10
@@ -68,7 +68,7 @@ parameters:
   # Training schedule
   epochs_nr: 10000
   batch_size_train: 24
-  batch_size_inference: 4
+  batch_size_inference: 16
   lr: 0.0001
   momentum: 0.9
   gamma: 0.95

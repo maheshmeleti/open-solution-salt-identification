@@ -159,7 +159,7 @@ def aggregator(name, model, tta_generator, experiment_directory, config):
 
 
 def mask_postprocessing(config, suffix=''):
-    if config.general.loader_mode == 'resize_and_pad':
+    if config.general.loader_mode == 'crop_and_pad':
         size_adjustment_function = partial(crop_image, target_size=config.general.original_size)
     elif config.general.loader_mode == 'resize':
         size_adjustment_function = partial(resize_image, target_size=config.general.original_size)

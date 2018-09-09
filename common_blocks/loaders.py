@@ -93,6 +93,7 @@ class ImageSegmentationBaseDataset(Dataset):
                  mask_transform, image_augment,
                  image_source='memory'):
         super().__init__()
+        #pdb.set_trace()
         self.X = X
         if y is not None:
             self.y = y
