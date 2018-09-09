@@ -97,7 +97,16 @@ def preprocessing_inference(config, model_name='unet', suffix=''):
 
 
 def preprocessing_inference_tta(config, model_name='unet', suffix=''):
-    if config.loader.dataset_params.image_source == 'memory':
+    if config.general.loader_mode == 'crop_and_pad':
+        Loader = loaders.ImageSegmentationLoaderCropPadTTA
+        loader_config = config.loaders.crop_and_pad_tta
+    elif config.general.loader_mode == 'resize':
+        Loader = loaders.ImageSegmentationLoaderResizeTTA
+        loader_config = config.loaders.resize_tta
+    else:
+        raise NotImplementedError
+
+    if loader_config.dataset_params.image_source == 'memory':
         reader_inference = Step(name='reader_inference{}'.format(suffix),
                                 transformer=loaders.ImageReader(train_mode=False, **config.reader[model_name]),
                                 input_data=['input'],
@@ -110,7 +119,7 @@ def preprocessing_inference_tta(config, model_name='unet', suffix=''):
                              adapter=Adapter({'X': E('reader_inference', 'X')}),
                              experiment_directory=config.execution.experiment_dir)
 
-    elif config.loader.dataset_params.image_source == 'disk':
+    elif loader_config.dataset_params.image_source == 'disk':
         reader_inference = Step(name='reader_inference{}'.format(suffix),
                                 transformer=loaders.XYSplit(train_mode=False, **config.xy_splitter[model_name]),
                                 input_data=['input'],
@@ -125,14 +134,6 @@ def preprocessing_inference_tta(config, model_name='unet', suffix=''):
     else:
         raise NotImplementedError
 
-    if config.general.loader_mode == 'crop_and_pad':
-        Loader = loaders.ImageSegmentationLoaderCropPadTTA
-        loader_config = config.loader.crop_and_pad_tta
-    elif config.general.loader_mode == 'resize':
-        Loader = loaders.ImageSegmentationLoaderResizeTTA
-        loader_config = config.loader.resize_tta
-    else:
-        raise NotImplementedError
 
     loader = Step(name='loader{}'.format(suffix),
                   transformer=Loader(**loader_config),
@@ -142,7 +143,7 @@ def preprocessing_inference_tta(config, model_name='unet', suffix=''):
                                    }),
                   experiment_directory=config.execution.experiment_dir,
                   cache_output=True)
-    return loader, tta_generator
+    return loader #, tta_generator
 
 
 def aggregator(name, model, tta_generator, experiment_directory, config):

@@ -4,11 +4,13 @@ import torch.optim as optim
 from torch.autograd import Variable
 import torch.nn as nn
 from functools import partial
+from .lovasz_losses import binary_xloss, lovasz_hinge
 from toolkit.pytorch_transformers.models import Model
 
 from .utils import sigmoid, softmax, get_list_of_image_predictions
 from . import callbacks as cbk
 from .unet_models import AlbuNet, UNet11, UNetVGG16, UNetResNet
+import pdb
 
 PRETRAINED_NETWORKS = {'VGG11': {'model': UNet11,
                                  'model_config': {'pretrained': True},
@@ -56,6 +58,8 @@ class PyTorchUNet(Model):
         self._initialize_model_weights()
 
         self.model = nn.DataParallel(self.model)
+        self.load('./output/experiment/checkpoints/unet/best.torch')
+        self.model.train()
 
         if torch.cuda.is_available():
             self.model = self.model.cuda()
@@ -169,19 +173,23 @@ class PyTorchUNet(Model):
                                     cross_entropy_weight=self.architecture_config['model_params']['bce_weight']
                                     )
         elif self.activation_func == 'sigmoid':
-            loss_function = partial(mixed_dice_bce_loss,
-                                    dice_loss=multiclass_dice_loss,
-                                    bce_loss=nn.BCEWithLogitsLoss(),
-                                    dice_activation='sigmoid',
-                                    dice_weight=self.architecture_config['model_params']['dice_weight'],
-                                    bce_weight=self.architecture_config['model_params']['bce_weight']
-                                    )
+            loss_function = partial(lovasz_hinge)
+            print('>>>Loss: lovasz_hinge')
+            #loss_function = partial(mixed_dice_bce_loss,
+            #                        dice_loss=multiclass_dice_loss,
+            #                        bce_loss=nn.BCEWithLogitsLoss(),
+            #                        dice_activation='sigmoid',
+            #                        dice_weight=self.architecture_config['model_params']['dice_weight'],
+            #                        bce_weight=self.architecture_config['model_params']['bce_weight']
+            #                        )
         else:
             raise Exception('Only softmax and sigmoid activations are allowed')
         self.loss_function = [('mask', loss_function, 1.0)]
 
     def load(self, filepath):
         self.model.eval()
+        #pdb.set_trace()
+        print('>>>Loading...: ', filepath)
 
         if not isinstance(self.model, nn.DataParallel):
             self.model = nn.DataParallel(self.model)

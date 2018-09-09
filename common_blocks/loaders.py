@@ -15,7 +15,7 @@ import json
 from steppy.base import BaseTransformer
 
 from .utils import from_pil, to_pil, binary_from_rle, ImgAug
-
+import pdb
 
 class ImageReader(BaseTransformer):
     def __init__(self, train_mode, x_columns, y_columns, target_format='png'):

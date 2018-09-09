@@ -3,6 +3,7 @@ from torch.nn import functional as F
 import torch
 from torchvision import models
 import torchvision
+import pdb
 
 """
 This script has been taken (and modified) from :
@@ -339,6 +340,7 @@ class UNetResNet(nn.Module):
     def __init__(self, encoder_depth, num_classes, num_filters=32, dropout_2d=0.2,
                  pretrained=False, is_deconv=False):
         super().__init__()
+        #pdb.set_trace()
         self.num_classes = num_classes
         self.dropout_2d = dropout_2d
 
@@ -402,3 +404,15 @@ class UNetResNet(nn.Module):
         dec0 = self.dec0(dec1)
 
         return self.final(F.dropout2d(dec0, p=self.dropout_2d))
+
+
+def test():
+    model = UNetResNet(152, 2, pretrained=True, is_deconv=True).cuda()
+    inputs = torch.randn(2,3,128,128).cuda()
+    out = model(inputs)
+    print(out.size())
+    print(out)
+
+
+if __name__ == '__main__':
+    test()
