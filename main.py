@@ -421,6 +421,6 @@ def calculate_scores(y_true, y_pred):
 
 if __name__ == '__main__':
     #prepare_metadata()
-    train()
-    evaluate()
+    #train()
+    #evaluate()
     predict()
