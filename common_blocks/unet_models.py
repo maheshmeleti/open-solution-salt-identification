@@ -347,6 +347,9 @@ class UNetResNet(nn.Module):
         if encoder_depth == 34:
             self.encoder = torchvision.models.resnet34(pretrained=pretrained)
             bottom_channel_nr = 512
+        if encoder_depth == 50:
+            self.encoder = torchvision.models.resnet50(pretrained=pretrained)
+            bottom_channel_nr = 2048
         elif encoder_depth == 101:
             self.encoder = torchvision.models.resnet101(pretrained=pretrained)
             bottom_channel_nr = 2048
@@ -407,7 +410,7 @@ class UNetResNet(nn.Module):
 
 
 def test():
-    model = UNetResNet(152, 2, pretrained=True, is_deconv=True).cuda()
+    model = UNetResNet(50, 2, pretrained=True, is_deconv=True).cuda()
     inputs = torch.randn(2,3,128,128).cuda()
     out = model(inputs)
     print(out.size())

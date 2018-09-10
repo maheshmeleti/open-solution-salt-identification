@@ -28,6 +28,12 @@ PRETRAINED_NETWORKS = {'VGG11': {'model': UNet11,
                                                      'pretrained': True, 'is_deconv': True,
                                                      },
                                     'init_weights': False},
+                       'ResNet50': {'model': UNetResNet,
+                                     'model_config': {'encoder_depth': 50,
+                                                      'num_filters': 32, 'dropout_2d': 0.0,
+                                                      'pretrained': True, 'is_deconv': True,
+                                                      },
+                                     'init_weights': False},
                        'ResNet101': {'model': UNetResNet,
                                      'model_config': {'encoder_depth': 101,
                                                       'num_filters': 32, 'dropout_2d': 0.0,
@@ -58,7 +64,7 @@ class PyTorchUNet(Model):
         self._initialize_model_weights()
 
         self.model = nn.DataParallel(self.model)
-        self.load('./output/experiment/checkpoints/unet/best_814.pth')
+        self.load('./output/experiment/checkpoints/unet/152/best_814.pth')
         self.model.train()
 
         if torch.cuda.is_available():
