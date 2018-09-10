@@ -50,7 +50,7 @@ PRETRAINED_NETWORKS = {'VGG11': {'model': UNet11,
 
 
 class PyTorchUNet(Model):
-    def __init__(self, architecture_config, training_config, callbacks_config):
+    def __init__(self, architecture_config, training_config, callbacks_config, model_file=None):
         super().__init__(architecture_config, training_config, callbacks_config)
         self.activation_func = self.architecture_config['model_params']['activation']
         self.set_model()
@@ -59,12 +59,13 @@ class PyTorchUNet(Model):
         self.optimizer = optim.Adam(self.weight_regularization(self.model, **architecture_config['regularizer_params']),
                                     **architecture_config['optimizer_params'])
         self.callbacks = callbacks_unet(self.callbacks_config)
+        self.model_file = model_file
 
     def fit(self, datagen, validation_datagen=None, meta_valid=None):
         self._initialize_model_weights()
 
         self.model = nn.DataParallel(self.model)
-        self.load('./output/experiment/checkpoints/unet/152/best_814.pth')
+        #self.load('./output/experiment/checkpoints/unet/152/best_814.pth')
         self.model.train()
 
         if torch.cuda.is_available():
@@ -123,6 +124,8 @@ class PyTorchUNet(Model):
         return partial_batch_losses
 
     def transform(self, datagen, validation_datagen=None, *args, **kwargs):
+        if self.model_file is not None:
+            self.load(self.model_file)
         outputs = self._transform(datagen, validation_datagen)
         for name, prediction in outputs.items():
             if self.activation_func == 'softmax':
@@ -196,6 +199,7 @@ class PyTorchUNet(Model):
         self.model.eval()
         #pdb.set_trace()
         print('>>>Loading...: ', filepath)
+        #pdb.set_trace()
 
         if not isinstance(self.model, nn.DataParallel):
             self.model = nn.DataParallel(self.model)

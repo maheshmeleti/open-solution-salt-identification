@@ -253,14 +253,14 @@ CONFIG = AttrDict({
 #  | _|      |__| | _|      |_______||_______||__| |__| \__| |_______|_______/    
 #                                                                                 
 
-def unet(config, suffix='', train_mode=True):
+def unet(config, suffix='', train_mode=True, model_file=None):
     if train_mode:
         preprocessing = pipelines.preprocessing_train(config, model_name='unet', suffix=suffix)
     else:
         preprocessing = pipelines.preprocessing_inference(config, suffix=suffix)
 
     unet = Step(name='unet{}'.format(suffix),
-                transformer=models.PyTorchUNet(**config.model['unet']),
+                transformer=models.PyTorchUNet(**config.model['unet'], model_file=model_file),
                 input_data=['callback_input'],
                 input_steps=[preprocessing],
                 adapter=Adapter({'datagen': E(preprocessing.name, 'datagen'),
@@ -396,6 +396,58 @@ def predict():
     LOGGER.info('submission saved to {}'.format(submission_filepath))
     LOGGER.info('submission head \n\n{}'.format(submission.head()))
 
+import pdb
+def ensemble():
+    LOGGER.info('predicting')
+
+    meta = pd.read_csv(PARAMS.metadata_filepath)
+    meta_test = meta[meta['is_train'] == 0]
+
+    if DEV_MODE:
+        meta_test = meta_test.sample(PARAMS.dev_mode_size, random_state=SEED)
+
+    data = {'input': {'meta': meta_test,
+                      },
+            'callback_input': {'meta_valid': None
+                               }
+            }
+
+    model_files = ['./output/experiment/checkpoints/unet/152/best_814.pth', './output/experiment/checkpoints/unet/152/best_814_elu.pth']
+    predicted_masks = []
+    for model_file in model_files:
+        pipeline_network = unet(config=CONFIG, train_mode=False, model_file=model_file)
+        pipeline_network.clean_cache()
+        predicted_mask = pipeline_network.transform(data)
+        print([k for k in predicted_mask.keys()])
+        print(len(predicted_mask['mask_prediction']))
+        predicted_masks.append(np.array(predicted_mask['mask_prediction']))
+        #pdb.set_trace()
+        #print(predicted_mask)
+    print(predicted_masks[0].shape)
+    tmp = np.mean(predicted_masks, 0)
+    tmp2 = []
+    for i in range(len(tmp)):
+        #print(tmp[i].shape)
+        tmp2.append(tmp[i])
+    tmp3 = {'mask_prediction': tmp2}
+
+    
+    pipeline_postprocessing = pipelines.mask_postprocessing(config=CONFIG)
+    test_masks = {'input_masks': tmp3
+                  }
+    output = pipeline_postprocessing.transform(test_masks)
+    pipeline_network.clean_cache()
+    pipeline_postprocessing.clean_cache()
+    y_pred_test = output['binarized_images']
+
+    submission = utils.create_submission(meta_test, y_pred_test)
+
+    submission_filepath = os.path.join(EXPERIMENT_DIR, 'ensemble.csv')
+
+    submission.to_csv(submission_filepath, index=None, encoding='utf-8')
+    LOGGER.info('submission saved to {}'.format(submission_filepath))
+    LOGGER.info('submission head \n\n{}'.format(submission.head()))
+
 
 #   __    __  .___________. __   __          _______.
 #  |  |  |  | |           ||  | |  |        /       |
@@ -424,3 +476,4 @@ if __name__ == '__main__':
     train()
     #evaluate()
     #predict()
+    #ensemble()
